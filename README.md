@@ -1,4 +1,4 @@
-# File Upload API
+# 🔥 FireStream API - Open Source S3 Alternative
 
 ## Overview
 This is a secure, rate-limited file upload API built with Express.js and Prisma. It supports API key authentication, file uploads, and file management. Uploaded files are stored locally, and metadata is recorded in a PostgreSQL database.
@@ -9,10 +9,7 @@ This is a secure, rate-limited file upload API built with Express.js and Prisma.
 - File size limit: 1GB (can be changed in the code)
 - File management endpoints (list and delete files)
 - Strict CORS policies
-- Rate limiting to prevent abuse
-- Robust error handling
-- Health check endpoint
-- Graceful shutdown handling
+- Rate limiting to prevent abuse 
 
 ## Installation
 
@@ -121,4 +118,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contact
 
 For any questions or feedback, please contact me at [hi@alohe.dev](mailto:hi@alohe.dev) or [@alemalohe](https://x.com/alemalohe).
-
