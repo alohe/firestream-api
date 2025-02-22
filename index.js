@@ -313,6 +313,66 @@ app.delete("/api/files/:fileId", validateApiKey, asyncHandler(async (req, res) =
   }
 }));
 
+// Delete file by URL endpoint
+app.delete("/api/files", validateApiKey, asyncHandler(async (req, res) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({
+      status: false,
+      message: "File URL is required"
+    });
+  }
+
+  // Extract path from URL and find file in database
+  const urlPath = url; // /uploads/filename.ext  
+  
+  const file = await prisma.file.findFirst({
+    where: { path: urlPath }
+  });
+
+  if (!file) {
+    return res.status(404).json({
+      status: false,
+      message: "File not found"
+    });
+  }
+
+  if (file.userId !== req.user.id) {
+    return res.status(403).json({
+      status: false,
+      message: "Not authorized to delete this file"
+    });
+  }
+
+  const filePath = path.join(__dirname, "public", file.path);
+  
+  try {
+    // Delete from filesystem
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Delete from database
+    await prisma.file.delete({
+      where: { id: file.id }
+    });
+
+    res.status(200).json({
+      status: true,
+      message: "File deleted successfully"
+    });
+  } catch (error) {
+    // If file deletion fails, log error but don't expose details to client
+    console.error('File deletion error:', error);
+    return res.status(500).json({
+      status: false,
+      message: 'Failed to delete file'
+    });
+  }
+}));
+
+
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
