@@ -31,6 +31,7 @@ const __dirname = path.dirname(__filename);
 const prisma = new PrismaClient();
 
 const app = express();
+app.set("trust proxy", false);
 const PORT = process.env.PORT || 4006;
 
 // Strict CORS configuration
@@ -101,23 +102,27 @@ const uploadMiddleware = (req, res, next) => {
   upload(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
+        console.error('File size too large. Maximum size is 1GB');
         return res.status(400).json({
           status: false,
           message: 'File size too large. Maximum size is 1GB'
         });
       }
       if (err.code === 'LIMIT_FILE_COUNT') {
+        console.error('Too many files. Maximum is 10 files per upload');
         return res.status(400).json({
           status: false,
           message: 'Too many files. Maximum is 10 files per upload'
         });
       }
+      console.error(err.message);
       return res.status(400).json({
         status: false,
         message: err.message
       });
     }
     if (err) {
+      console.error(err.message);
       return res.status(400).json({
         status: false,
         message: err.message
@@ -141,6 +146,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '1GB' }));
 // Error handler for body-parser
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Invalid JSON payload');
     return res.status(400).json({
       status: false,
       message: 'Invalid JSON payload'
@@ -168,10 +174,12 @@ const apiLimiter = rateLimit({
 // Apply rate limiting to all routes
 app.use(apiLimiter);
 
+
 // API Key middleware
 const validateApiKey = async (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   if (!apiKey) {
+    console.error('API key is required');
     return res.status(401).json({ 
       status: false, 
       message: 'API key is required' 
@@ -185,6 +193,7 @@ const validateApiKey = async (req, res, next) => {
     });
 
     if (!validApiKey) {
+      console.error('Invalid API key');
       return res.status(401).json({
         status: false,
         message: 'Invalid API key'
@@ -223,6 +232,7 @@ app.post("/api/upload", validateApiKey, uploadMiddleware, asyncHandler(async (re
   }
 
   if (files.length === 0) {
+    console.error("No files uploaded");
     return res.status(400).json({
       status: false,
       message: "No files uploaded"
@@ -276,6 +286,7 @@ app.delete("/api/files/:fileId", validateApiKey, asyncHandler(async (req, res) =
   });
 
   if (!file) {
+    console.error("File not found");
     return res.status(404).json({
       status: false,
       message: "File not found"
@@ -283,6 +294,7 @@ app.delete("/api/files/:fileId", validateApiKey, asyncHandler(async (req, res) =
   }
 
   if (file.userId !== req.user.id) {
+    console.error("Not authorized to delete this file");
     return res.status(403).json({
       status: false,
       message: "Not authorized to delete this file"
@@ -307,9 +319,11 @@ app.delete("/api/files/:fileId", validateApiKey, asyncHandler(async (req, res) =
       message: "File deleted successfully"
     });
   } catch (error) {
-    // If file deletion fails, log error but don't expose details to client
     console.error('File deletion error:', error);
-    throw new Error('Failed to delete file');
+    return res.status(500).json({
+      status: false,
+      message: 'Failed to delete file'
+    });
   }
 }));
 
@@ -318,6 +332,7 @@ app.delete("/api/files", validateApiKey, asyncHandler(async (req, res) => {
   const { url } = req.body;
 
   if (!url) {
+    console.error("File URL is required");
     return res.status(400).json({
       status: false,
       message: "File URL is required"
@@ -332,6 +347,7 @@ app.delete("/api/files", validateApiKey, asyncHandler(async (req, res) => {
   });
 
   if (!file) {
+    console.error("File not found");
     return res.status(404).json({
       status: false,
       message: "File not found"
@@ -339,6 +355,7 @@ app.delete("/api/files", validateApiKey, asyncHandler(async (req, res) => {
   }
 
   if (file.userId !== req.user.id) {
+    console.error("Not authorized to delete this file");
     return res.status(403).json({
       status: false,
       message: "Not authorized to delete this file"
@@ -363,7 +380,6 @@ app.delete("/api/files", validateApiKey, asyncHandler(async (req, res) => {
       message: "File deleted successfully"
     });
   } catch (error) {
-    // If file deletion fails, log error but don't expose details to client
     console.error('File deletion error:', error);
     return res.status(500).json({
       status: false,
