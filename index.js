@@ -31,7 +31,6 @@ const __dirname = path.dirname(__filename);
 const prisma = new PrismaClient();
 
 const app = express();
-app.set("trust proxy", false);
 const PORT = process.env.PORT || 4006;
 
 // Strict CORS configuration
